@@ -35,23 +35,6 @@ This project was developed as a **practical helper tool**, making it easier for 
 
 
 
-##note Structure
-ZKBioTIME-UI/
-│── main.py             # Entry point
-│── auth.py             # Authentication handling
-│── config.py           # Configurations (API/DB details)
-│── test.py             # Testing script
-│── api/                # API integration code
-│── ui/                 # UI components
-│── utils/              # Helper functions
-│── assets/             # Icons, images, etc.
-│── build/              # Build artifacts
-│── dist/               # (Excluded) Distribution files
-│── version_info.txt    # Version details
-
-
-
-
 ⚠️ Notes
 
 This tool is not an official ZKTeco product.
