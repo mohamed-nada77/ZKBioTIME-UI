@@ -1,0 +1,83 @@
+# ui/add_employee.py
+import tkinter as tk
+from tkinter import ttk, messagebox
+import requests
+from config import BASE_URL
+from utils.state import get_auth_headers
+
+def open_add_employee():
+    win = tk.Toplevel()
+    win.title("Add New Employee")
+    win.geometry("400x300")
+
+    tk.Label(win, text="Employee ID").grid(row=0, column=0)
+    emp_entry = tk.Entry(win)
+    emp_entry.grid(row=0, column=1)
+
+    tk.Label(win, text="First Name").grid(row=1, column=0)
+    fname_entry = tk.Entry(win)
+    fname_entry.grid(row=1, column=1)
+
+    # Fetch departments
+    try:
+        dept_resp = requests.get(f"{BASE_URL}/personnel/api/departments/", headers=get_auth_headers())
+        departments = dept_resp.json().get("data", [])
+        dept_map = {dept["dept_name"]: dept["id"] for dept in departments}
+    except:
+        dept_map = {}
+
+    tk.Label(win, text="Department").grid(row=2, column=0)
+    dept_var = tk.StringVar()
+    dept_dropdown = ttk.Combobox(win, textvariable=dept_var, values=list(dept_map.keys()))
+    dept_dropdown.grid(row=2, column=1)
+    if dept_map:
+        dept_dropdown.current(0)
+
+    tk.Label(win, text="Position").grid(row=3, column=0)
+    pos_var = tk.StringVar()
+    pos_entry = tk.Entry(win, textvariable=pos_var)
+    pos_entry.grid(row=3, column=1)
+
+    def submit():
+        emp_code = emp_entry.get()
+        fname = fname_entry.get()
+        department_id = dept_map.get(dept_var.get())
+        position = pos_var.get()
+
+        # Add position if needed
+        try:
+            pos_resp = requests.get(f"{BASE_URL}/personnel/api/positions/", headers=get_auth_headers())
+            positions = pos_resp.json().get("data", [])
+            position_names = [p["position_name"] for p in positions]
+        except:
+            position_names = []
+
+        # Create new position if not exists
+        if position not in position_names:
+            requests.post(f"{BASE_URL}/personnel/api/positions/", headers=get_auth_headers(), json={
+                "position_code": position[:10],
+                "position_name": position,
+                "parent_position": None
+            })
+
+        # Get updated position ID
+        pos_resp = requests.get(f"{BASE_URL}/personnel/api/positions/", headers=get_auth_headers())
+        updated_positions = pos_resp.json().get("data", [])
+        position_id = next((p["id"] for p in updated_positions if p["position_name"] == position), None)
+
+        payload = {
+            "emp_code": emp_code,
+            "first_name": fname,
+            "department": department_id,
+            "position": position_id,
+            "area": [1]  # ALPAGO
+        }
+
+        emp_resp = requests.post(f"{BASE_URL}/personnel/api/employees/", headers=get_auth_headers(), json=payload)
+        if emp_resp.status_code in [200, 201]:
+            messagebox.showinfo("Success", "Employee added!")
+            win.destroy()
+        else:
+            messagebox.showerror("Error", emp_resp.text)
+
+    tk.Button(win, text="Submit", command=submit).grid(row=5, column=0, columnspan=2, pady=10)
